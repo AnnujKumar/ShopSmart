@@ -1,6 +1,8 @@
 
 const mongoose = require('mongoose')
-require('dotenv').config()
+require('dotenv').config({
+  path: process.env.NODE_ENV === 'production' ? '.env.production' : '.env.development'
+})
 
 const uri = process.env.MONGODB_URI || 'mongodb://localhost:27017/ecommerce'
 

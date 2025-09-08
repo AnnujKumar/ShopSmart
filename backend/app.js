@@ -1,7 +1,9 @@
 
 const express = require('express')
 const cors = require('cors')
-require('dotenv').config()
+require('dotenv').config({
+  path: process.env.NODE_ENV === 'production' ? '.env.production' : '.env.development'
+})
 const app = express()
 const userRoutes = require('./Routes/userRoutes')
 const productRoutes = require('./Routes/productRoutes')
@@ -12,8 +14,9 @@ const errorHandler = require('./middleware/errorHandler')
 process.env.JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret_should_be_long_and_secure_in_production';
 
 // Enable CORS for all routes
+const allowedOrigins = process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',') : ['http://localhost:5173'];
 app.use(cors({
-  origin: ['http://localhost:5173', 'http://localhost:3000', 'https://shop-smart-u643-o9ha5l5dm-annuj-kumars-projects.vercel.app', 'https://shop-smart-git-master-annuj-kumars-projects.vercel.app', 'https://shop-smart.vercel.app'],
+  origin: allowedOrigins,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
