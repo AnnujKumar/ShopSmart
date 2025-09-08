@@ -1,98 +1,152 @@
-# E-Commerce Backend API
+# ShopSmart API & Features
 
-## User APIs
+Base URL: `/api` (e.g., http://localhost:5000/api)
 
-### POST /api/users/signup
+Health: `GET /api/health` → `{ status: 'ok' }`
 
-Registers a new user. Requires name, email, password, and address in the request body. Returns success message on registration.
+Auth: Bearer JWT (Authorization: `Bearer <token>`) for protected routes.
 
-### POST /api/users/login
+Environment variables:
+- `MONGODB_URI` MongoDB connection string
+- `JWT_SECRET` Secret used to sign JWTs
+- `PORT` Server port (default 5000)
 
-Authenticates a user. Requires email and password in the request body. Returns a JWT token if credentials are valid.
-
-### GET /api/users/profile
-
-Returns the profile information of the authenticated user. Requires JWT token in the Authorization header.
-
-## Product APIs
-
-### POST /api/products/
-
-Creates a new product. Requires product details (name, description, price, category, image, stock) in the request body. Returns the created product object.
-
-### GET /api/products/
-
-Lists all products. Supports optional filters via query parameters: price and category. Returns an array of products.
-
-### GET /api/products/:id
-
-Fetches details of a single product by its ID. Returns the product object.
-
-### PUT /api/products/:id
-
-Updates an existing product by its ID. Requires updated product details in the request body. Returns the updated product object.
-
-### DELETE /api/products/:id
-
-Deletes a product by its ID. Returns a success message on deletion.
-
-## Cart APIs
-
-### POST /api/cart/add
-
-Adds a product to the user's cart. Requires userId, productId, and quantity in the request body. Returns the updated cart object.
-
-### GET /api/cart/
-
-Fetches the cart for a user. Requires userId as a query parameter. Returns the cart with populated product details.
-
-### POST /api/cart/remove
-
-Removes a product from the user's cart. Requires userId and productId in the request body. Returns the updated cart object.
-
-## Authentication
-
-All protected routes require a valid JWT token in the Authorization header. The token is issued on successful login and must be included in requests to access user profile and other protected resources.
-
-## Usage
-
-Start server: `node server.js`
+## Features
+- User auth: signup, login, token verification, profile
+- Products: list with filters (category, maxPrice, search), detail, create/update/delete (protected)
+- Cart: add, list, remove, update quantity, replace entire cart (all protected)
+- CORS enabled, detailed error handler, health check
 
 ---
 
-# E-Commerce Frontend
+## Users
+Route prefix: `/api/users`
 
-## Frontend Routes
+- POST `/signup` — Register
+	- Body: `{ name, email, password, address }`
+	- 201: `{ message }`
+	- 400: `{ error }` (email already registered, validation)
 
-### /signup
+- POST `/login` — Authenticate
+	- Body: `{ email, password }`
+	- 200: `{ token, userId, name, email }`
+	- 401: `{ error: 'Invalid credentials' }`
 
-Signup page for new users. Allows registration with name, email, password, and address.
+- GET `/profile` — Get current user (protected)
+	- Headers: `Authorization: Bearer <token>`
+	- 200: `{ _id, name, email, address, createdAt }`
 
-### /login
+- GET `/orders` — User orders (protected, placeholder)
+	- 200: `{ message, orders: [] }`
 
-Login page for existing users. Authenticates and stores JWT token for session.
+- GET `/verify-token` — Validate token (protected)
+	- 200: `{ message: 'Token is valid', user: { id } }`
 
-### /
+---
 
-Product listing page. Displays all products with filters for price and category. Allows adding products to cart.
+## Products
+Route prefix: `/api/products`
 
-### /cart
+- GET `/` — List products (public)
+	- Query params (optional):
+		- `category` (string, 'All' ignored)
+		- `maxPrice` (number)
+		- `search` (string; matches name/description, case-insensitive)
+	- 200: `Product[]`
 
-Cart page. Shows all items added to the cart, with options to remove items. Cart items persist after logout.
+- GET `/:id` — Product detail (public)
+	- 200: `Product`
+	- 400/404 on invalid/not found
 
-## Components
+- POST `/` — Create product (protected)
+	- Body: `{ name, description, price, category, image, stock }`
+	- 201: `Product`
 
-- Navbar: Navigation bar for switching between pages
-- Signup: Registration form
-- Login: Login form
-- ProductList: Product display and filtering
-- Cart: Cart management
+- PUT `/:id` — Update product (protected)
+	- Body: partial product fields
+	- 200: `Product`
 
-## Styling
+- DELETE `/:id` — Delete product (protected)
+	- 200: `{ message: 'Product deleted' }`
 
-Professional, modern UI using CSS in `styles.css`.
+Product schema (relevant): `{ _id, name, description, price, category, image, stock }`
 
-## Usage
+---
 
-- Install dependencies: `npm install` in the `frontend` folder
-- Start frontend: `npm start` in the `frontend` folder
+## Cart
+Route prefix: `/api/cart` (all routes protected)
+
+All routes require header: `Authorization: Bearer <token>`
+
+Cart shape: `{ user, items: [{ product: Product | productId, quantity }], ... }`
+
+- GET `/` — Get current cart
+	- 200: `{ user, items: [{ product: Product, quantity }] }` (products populated)
+
+- POST `/add` — Add item
+	- Body: `{ productId, quantity }`
+	- 200: full cart with populated products
+	- 400: missing/invalid ids; 404: product not found
+
+- POST `/remove` — Remove item
+	- Body: `{ productId }`
+	- 200: full cart with populated products
+	- 404: product not in cart
+
+- POST `/update` — Update quantity
+	- Body: `{ productId, quantity >= 1 }`
+	- 200: full cart with populated products
+
+- PUT `/` — Replace entire cart
+	- Body: `{ items: [{ product: productId, quantity >= 1 }] }`
+	- 200: full cart with populated products
+
+Errors handled centrally with consistent JSON:
+```
+{
+	"error": {
+		"message": string,
+		"status": number,
+		"timestamp": iso,
+		"stack?": string,
+		"details?": any
+	}
+}
+```
+
+---
+
+## Quick start
+1) Install deps
+```
+cd backend
+npm install
+```
+
+2) Configure env (.env.development)
+```
+MONGODB_URI=mongodb://localhost:27017/ecommerce
+JWT_SECRET=replace_with_secure_secret
+PORT=5000
+```
+
+3) Run locally
+```
+npm start
+# or
+node server.js
+```
+
+You should see: `ShopSmart API is running!` at `/` and `GET /api/health` → `{ status: 'ok' }`.
+
+---
+
+## Frontend (overview)
+- Routes: `/welcome`, `/` (products), `/cart`, `/signup`, `/login`
+- Uses Axios instance (`Frontend/src/api/axios.js`) with `VITE_API_URL`
+- Auth token stored in localStorage and sent via Authorization header
+
+Troubleshooting
+- 401: ensure Authorization header is present and token is valid (`/api/users/verify-token`).
+- CORS: backend sets permissive CORS; verify `VITE_API_URL` points to backend `/api`.
+- Mongo: confirm `MONGODB_URI` and DB is running.
