@@ -13,11 +13,22 @@ export default function App() {
   
   // Fetch cart when the component mounts or token changes
   useEffect(() => {
+    // Reset cart counter shown in UI to match actual cart state
+    const resetCartCounterInUI = () => {
+      // Get the cart element in the navbar
+      const cartCounter = document.querySelector('.navbar a[href="/cart"]');
+      if (cartCounter) {
+        // Set the text to just "Cart" without any count
+        cartCounter.textContent = 'Cart (0)';
+      }
+    };
+    
     const fetchCart = async () => {
       if (!token) {
         console.log('No token available, clearing cart state');
         setCartItems([]);
         setCartCount(0);
+        resetCartCounterInUI();
         return;
       }
       
@@ -26,14 +37,27 @@ export default function App() {
         const response = await apiClient.get('/cart');
         console.log('App: Cart API response:', response);
         
-        if (response.data && response.data.items) {
+        if (response.data && response.data.items && Array.isArray(response.data.items)) {
           console.log('App: Cart items received:', response.data.items);
-          setCartItems(response.data.items);
-          setCartCount(response.data.items.length);
+          // Verify each item has a valid product property
+          const validItems = response.data.items.filter(item => 
+            item && item.product && item.product._id && item.quantity
+          );
+          
+          console.log('App: Valid cart items:', validItems);
+          setCartItems(validItems);
+          setCartCount(validItems.length);
+          
+          // Update UI directly as a backup
+          const cartCounter = document.querySelector('.navbar a[href="/cart"]');
+          if (cartCounter) {
+            cartCounter.textContent = `Cart (${validItems.length})`;
+          }
         } else {
           console.warn('App: Empty or invalid cart data received');
           setCartItems([]);
           setCartCount(0);
+          resetCartCounterInUI();
         }
       } catch (error) {
         console.error('App: Error fetching cart:', error);
@@ -42,6 +66,10 @@ export default function App() {
           response: error.response?.data,
           status: error.response?.status
         });
+        // On error, reset state
+        setCartItems([]);
+        setCartCount(0);
+        resetCartCounterInUI();
       }
     };
     
@@ -92,7 +120,7 @@ export default function App() {
     <Router>
       <nav className="navbar">
         <Link to="/">Products</Link>
-        <Link to="/cart">Cart ({cartCount})</Link>
+        <Link to="/cart" id="cartLink">Cart ({cartItems?.length || 0})</Link>
         <Link to="/signup">Sign Up</Link>
         <Link to="/login">Login</Link>
       </nav>

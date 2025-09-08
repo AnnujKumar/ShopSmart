@@ -20,32 +20,82 @@ export default function Cart({ token, onRemoveItem, onUpdateQuantity, initialCar
   }, 0);
 
   useEffect(() => {
+    // Always check if there are cart items in localStorage as a backup
+    let localStorageCart;
+    try {
+      const savedCart = localStorage.getItem('shopSmartCart');
+      if (savedCart) {
+        localStorageCart = JSON.parse(savedCart);
+        console.log('Cart: Found cart data in localStorage:', localStorageCart);
+      }
+    } catch (e) {
+      console.error('Error reading localStorage cart:', e);
+    }
+    
     // First, initialize with any initial cart items passed from parent
     if (initialCartItems && initialCartItems.length > 0) {
       console.log('Cart: Using initialCartItems:', initialCartItems);
       
       // Debug check for proper structure
+      let validItems = [];
+      
       initialCartItems.forEach((item, index) => {
+        const isValid = item && item.product && item.product._id && item.quantity;
         console.log(`Cart: Item ${index} structure:`, {
           hasProduct: !!item.product,
           productId: item.product?._id,
           productName: item.product?.name,
-          quantity: item.quantity
+          quantity: item.quantity,
+          isValid
         });
-      });
-      
-      setCart({ items: initialCartItems });
-      
-      // Initialize quantities state with current item quantities
-      const initialQuantities = {};
-      initialCartItems.forEach(item => {
-        if (item.product && item.product._id) {
-          initialQuantities[item.product._id] = item.quantity;
-        } else {
-          console.error('Cart: Invalid item structure in initialCartItems:', item);
+        
+        if (isValid) {
+          validItems.push(item);
         }
       });
-      setQuantities(initialQuantities);
+      
+      if (validItems.length > 0) {
+        setCart({ items: validItems });
+        
+        // Initialize quantities state with current item quantities
+        const initialQuantities = {};
+        validItems.forEach(item => {
+          initialQuantities[item.product._id] = item.quantity;
+        });
+        setQuantities(initialQuantities);
+        setIsLoading(false);
+        
+        // Save to localStorage as backup
+        localStorage.setItem('shopSmartCart', JSON.stringify({ items: validItems }));
+        return;
+      } else if (localStorageCart && localStorageCart.items && localStorageCart.items.length > 0) {
+        // Use localStorage backup if API items are invalid
+        setCart(localStorageCart);
+        
+        // Initialize quantities state with localStorage quantities
+        const localQuantities = {};
+        localStorageCart.items.forEach(item => {
+          if (item.product && item.product._id) {
+            localQuantities[item.product._id] = item.quantity;
+          }
+        });
+        setQuantities(localQuantities);
+        setIsLoading(false);
+        return;
+      }
+    } else if (localStorageCart && localStorageCart.items && localStorageCart.items.length > 0) {
+      // No initialCartItems but we have localStorage data
+      console.log('Cart: Using localStorage cart data');
+      setCart(localStorageCart);
+      
+      // Initialize quantities state with localStorage quantities
+      const localQuantities = {};
+      localStorageCart.items.forEach(item => {
+        if (item.product && item.product._id) {
+          localQuantities[item.product._id] = item.quantity;
+        }
+      });
+      setQuantities(localQuantities);
       setIsLoading(false);
       return;
     } else {
@@ -182,6 +232,15 @@ export default function Cart({ token, onRemoveItem, onUpdateQuantity, initialCar
     itemsData: cart?.items
   });
   
+  // Force update cart counter in navbar to match actual cart data
+  useEffect(() => {
+    // Get the cart element in the navbar
+    const cartCounter = document.querySelector('.navbar a[href="/cart"]');
+    if (cartCounter && cart?.items) {
+      cartCounter.textContent = `Cart (${cart.items.length || 0})`;
+    }
+  }, [cart?.items]);
+  
   if (!cart?.items || cart.items.length === 0) {
     console.log('Cart: Rendering empty cart view');
     return (
@@ -218,7 +277,7 @@ export default function Cart({ token, onRemoveItem, onUpdateQuantity, initialCar
             <div className="cart-header-actions"></div>
           </div>
           
-          {cart?.items?.map((item, index) => {
+          {cart?.items?.filter(item => item && item.product && item.product._id).map((item, index) => {
             console.log(`Cart: Rendering item ${index}:`, item);
             return (
             <div key={item.product._id} className="cart-item">
