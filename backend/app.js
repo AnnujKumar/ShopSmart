@@ -23,13 +23,23 @@ const errorHandler = require('./middleware/errorHandler')
 // Set up environment variables for JWT
 process.env.JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret_should_be_long_and_secure_in_production';
 
-// Enable CORS for all routes - allow specific origins
+// Enable CORS for all routes - allow any origin without restrictions
 app.use(cors({
-  origin: ['http://localhost:5173', 'https://shop-smart-12g9.vercel.app'],
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true // Allow credentials
+  origin: true, // Allow all origins
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
+  credentials: true, // Allow credentials
+  exposedHeaders: ['Content-Length', 'X-Requested-With']
 }))
+
+// Add additional CORS headers for preflight requests
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS,PATCH');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+  next();
+})
 
 // Request logging middleware
 app.use((req, res, next) => {
