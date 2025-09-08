@@ -13,10 +13,13 @@ export default function Cart({ token, onRemoveItem, onUpdateQuantity, initialCar
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [quantities, setQuantities] = useState({});
-
-  // Calculate the total price of all items in the cart
+  
+  // Calculate the total price of all items in the cart - with safe checks
   const totalPrice = cart?.items?.reduce((sum, item) => {
-    return sum + (item.product.price * item.quantity);
+    if (item && item.product && item.product.price && item.quantity) {
+      return sum + (item.product.price * item.quantity);
+    }
+    return sum;
   }, 0);
 
   useEffect(() => {
@@ -223,6 +226,15 @@ export default function Cart({ token, onRemoveItem, onUpdateQuantity, initialCar
     );
   }
 
+  // Additional useEffect for updating navbar cart counter
+  useEffect(() => {
+    // Get the cart element in the navbar
+    const cartCounter = document.querySelector('.navbar a[href="/cart"]');
+    if (cartCounter && cart?.items) {
+      cartCounter.textContent = `Cart (${cart.items.length || 0})`;
+    }
+  }, [cart?.items]);
+  
   // Debug cart state before rendering
   console.log('Cart: Current cart state:', {
     cartExists: !!cart,
@@ -231,15 +243,6 @@ export default function Cart({ token, onRemoveItem, onUpdateQuantity, initialCar
     isEmpty: !cart?.items || cart.items.length === 0,
     itemsData: cart?.items
   });
-  
-  // Force update cart counter in navbar to match actual cart data
-  useEffect(() => {
-    // Get the cart element in the navbar
-    const cartCounter = document.querySelector('.navbar a[href="/cart"]');
-    if (cartCounter && cart?.items) {
-      cartCounter.textContent = `Cart (${cart.items.length || 0})`;
-    }
-  }, [cart?.items]);
   
   if (!cart?.items || cart.items.length === 0) {
     console.log('Cart: Rendering empty cart view');
