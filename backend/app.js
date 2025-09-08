@@ -39,6 +39,21 @@ app.use((req, res, next) => {
 });
 
 app.use(express.json())
+// Root endpoint
+app.get('/', (req, res) => {
+  res.status(200).json({
+    status: 'ok',
+    message: 'ShopSmart API is running!',
+    version: '1.0',
+    endpoints: {
+      health: '/api/health',
+      users: '/api/users',
+      products: '/api/products',
+      cart: '/api/cart'
+    }
+  });
+});
+
 // Add a simple health check route
 app.get('/api/health', (req, res) => {
   res.status(200).json({ status: 'ok', message: 'API is running!' });
