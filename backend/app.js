@@ -23,11 +23,9 @@ const errorHandler = require('./middleware/errorHandler')
 // Set up environment variables for JWT
 process.env.JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret_should_be_long_and_secure_in_production';
 
-// Enable CORS for all routes
-const allowedOrigins = process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',') : ['http://localhost:5173'];
+// Enable CORS for all routes - allow any origin
 app.use(cors({
-  origin: allowedOrigins,
-  credentials: true,
+  origin: '*', // Allow all origins
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }))
