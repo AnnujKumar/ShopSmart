@@ -44,9 +44,31 @@ app.get('/api/health', (req, res) => {
   res.status(200).json({ status: 'ok', message: 'API is running!' });
 });
 
+// Add a root route handler to avoid 404 errors
+app.get('/', (req, res) => {
+  res.status(200).json({ 
+    message: 'ShopSmart API is running!',
+    endpoints: [
+      '/api/health',
+      '/api/users',
+      '/api/products',
+      '/api/cart'
+    ] 
+  });
+});
+
 app.use('/api/users', userRoutes)
 app.use('/api/products', productRoutes)
 app.use('/api/cart', cartRoutes)
+
+// Handle 404 errors for any undefined routes
+app.use((req, res, next) => {
+  res.status(404).json({ 
+    status: 'error',
+    message: 'API endpoint not found',
+    path: req.originalUrl
+  });
+});
 
 // Error handling middleware should be last
 app.use(errorHandler)
