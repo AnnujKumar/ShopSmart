@@ -1,9 +1,19 @@
 
 const express = require('express')
 const cors = require('cors')
-require('dotenv').config({
-  path: process.env.NODE_ENV === 'production' ? '.env.production' : '.env.development'
-})
+const path = require('path')
+
+// Try to load environment variables from file, but don't fail if files don't exist
+try {
+  require('dotenv').config({
+    path: process.env.NODE_ENV === 'production' 
+      ? path.resolve(process.cwd(), '.env.production')
+      : path.resolve(process.cwd(), '.env.development')
+  })
+} catch (error) {
+  console.log('Environment files not found, using environment variables directly')
+}
+
 const app = express()
 const userRoutes = require('./Routes/userRoutes')
 const productRoutes = require('./Routes/productRoutes')
