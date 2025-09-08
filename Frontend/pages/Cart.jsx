@@ -3,6 +3,12 @@ import { Link } from 'react-router-dom';
 import apiClient from '../src/api/axios.js';
 
 export default function Cart({ token, onRemoveItem, onUpdateQuantity, initialCartItems = [] }) {
+  console.log('Cart: Component rendering with props:', { 
+    hasToken: !!token, 
+    initialCartItemsCount: initialCartItems?.length,
+    initialCartItems
+  });
+  
   const [cart, setCart] = useState({ items: initialCartItems || [] });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -16,6 +22,18 @@ export default function Cart({ token, onRemoveItem, onUpdateQuantity, initialCar
   useEffect(() => {
     // First, initialize with any initial cart items passed from parent
     if (initialCartItems && initialCartItems.length > 0) {
+      console.log('Cart: Using initialCartItems:', initialCartItems);
+      
+      // Debug check for proper structure
+      initialCartItems.forEach((item, index) => {
+        console.log(`Cart: Item ${index} structure:`, {
+          hasProduct: !!item.product,
+          productId: item.product?._id,
+          productName: item.product?.name,
+          quantity: item.quantity
+        });
+      });
+      
       setCart({ items: initialCartItems });
       
       // Initialize quantities state with current item quantities
@@ -23,11 +41,15 @@ export default function Cart({ token, onRemoveItem, onUpdateQuantity, initialCar
       initialCartItems.forEach(item => {
         if (item.product && item.product._id) {
           initialQuantities[item.product._id] = item.quantity;
+        } else {
+          console.error('Cart: Invalid item structure in initialCartItems:', item);
         }
       });
       setQuantities(initialQuantities);
       setIsLoading(false);
       return;
+    } else {
+      console.log('Cart: No initialCartItems provided, will fetch from API');
     }
     
     // If no initial items, fetch from the backend
@@ -151,7 +173,17 @@ export default function Cart({ token, onRemoveItem, onUpdateQuantity, initialCar
     );
   }
 
-  if (cart?.items?.length === 0) {
+  // Debug cart state before rendering
+  console.log('Cart: Current cart state:', {
+    cartExists: !!cart,
+    itemsExist: !!cart?.items,
+    itemsLength: cart?.items?.length || 0,
+    isEmpty: !cart?.items || cart.items.length === 0,
+    itemsData: cart?.items
+  });
+  
+  if (!cart?.items || cart.items.length === 0) {
+    console.log('Cart: Rendering empty cart view');
     return (
       <div className="cart-page">
         <h2>Your Cart</h2>
@@ -168,6 +200,8 @@ export default function Cart({ token, onRemoveItem, onUpdateQuantity, initialCar
     );
   }
 
+  console.log('Cart: Rendering non-empty cart view with items:', cart?.items);
+  
   return (
     <div className="cart-page">
       <h2>Your Cart</h2>
@@ -184,7 +218,9 @@ export default function Cart({ token, onRemoveItem, onUpdateQuantity, initialCar
             <div className="cart-header-actions"></div>
           </div>
           
-          {cart?.items?.map(item => (
+          {cart?.items?.map((item, index) => {
+            console.log(`Cart: Rendering item ${index}:`, item);
+            return (
             <div key={item.product._id} className="cart-item">
               <div className="cart-item-product">
                 <div className="cart-item-image">

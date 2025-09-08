@@ -27,12 +27,21 @@ const apiClient = axios.create({
 apiClient.interceptors.request.use(
   config => {
     const token = localStorage.getItem('token');
+    console.log('API Client: Making request to:', config.url);
+    
     if (token) {
+      console.log('API Client: Adding auth token to request:', token.substring(0, 10) + '...');
       config.headers.Authorization = `Bearer ${token}`;
+    } else {
+      console.warn('API Client: No token available for request');
     }
+    
     return config;
   },
-  error => Promise.reject(error)
+  error => {
+    console.error('API Client: Request interceptor error:', error);
+    return Promise.reject(error);
+  }
 );
 
 // Add response interceptor for better error handling
