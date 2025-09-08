@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import apiClient from '../src/api/axios.js';
 
-export default function Cart({ token, onRemoveItem, onUpdateQuantity }) {
-  const [cart, setCart] = useState({ items: [] });
+export default function Cart({ token, onRemoveItem, onUpdateQuantity, initialCartItems = [] }) {
+  const [cart, setCart] = useState({ items: initialCartItems || [] });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [quantities, setQuantities] = useState({});
@@ -14,14 +14,32 @@ export default function Cart({ token, onRemoveItem, onUpdateQuantity }) {
   }, 0);
 
   useEffect(() => {
+    // First, initialize with any initial cart items passed from parent
+    if (initialCartItems && initialCartItems.length > 0) {
+      setCart({ items: initialCartItems });
+      
+      // Initialize quantities state with current item quantities
+      const initialQuantities = {};
+      initialCartItems.forEach(item => {
+        if (item.product && item.product._id) {
+          initialQuantities[item.product._id] = item.quantity;
+        }
+      });
+      setQuantities(initialQuantities);
+      setIsLoading(false);
+      return;
+    }
+    
+    // If no initial items, fetch from the backend
     const fetchCart = async () => {
       setIsLoading(true);
       try {
-        // No need to pass userId, will be extracted from token
+        console.log('Fetching cart data from API...');
         const response = await apiClient.get('/cart');
         
         // Check if response has expected data structure
         if (response.data) {
+          console.log('Cart data received:', response.data);
           setCart(response.data || { items: [] });
           
           // Initialize quantities state with current item quantities
@@ -60,7 +78,7 @@ export default function Cart({ token, onRemoveItem, onUpdateQuantity }) {
     } else {
       setIsLoading(false);
     }
-  }, [token]);
+  }, [token, initialCartItems]);
 
   const removeFromCart = async (productId) => {
     try {
