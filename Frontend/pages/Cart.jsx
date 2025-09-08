@@ -1,213 +1,25 @@
-import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import apiClient from '../src/api/axios.js';
+import { useCart } from 'D://Web Development//ECommerce//Frontend//src//context//CartContext.jsx';
+import { useEffect } from 'react';
 
-export default function Cart({ token, onRemoveItem, onUpdateQuantity, initialCartItems = [] }) {
-  console.log('Cart: Component rendering with props:', { 
-    hasToken: !!token, 
-    initialCartItemsCount: initialCartItems?.length,
-    initialCartItems
-  });
-  
-  const [cart, setCart] = useState({ items: initialCartItems || [] });
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [quantities, setQuantities] = useState({});
-  
-  // Calculate the total price of all items in the cart - with safe checks
-  const totalPrice = cart?.items?.reduce((sum, item) => {
-    if (item && item.product && item.product.price && item.quantity) {
-      return sum + (item.product.price * item.quantity);
-    }
-    return sum;
-  }, 0);
+export default function Cart() {
+  // Get cart state and methods from context
+  const { 
+    cart, 
+    isLoading, 
+    error, 
+    totalPrice, 
+    removeFromCart, 
+    updateQuantity,
+    refreshCart
+  } = useCart();
 
+  // Refresh cart data when component mounts
   useEffect(() => {
-    // Always check if there are cart items in localStorage as a backup
-    let localStorageCart;
-    try {
-      const savedCart = localStorage.getItem('shopSmartCart');
-      if (savedCart) {
-        localStorageCart = JSON.parse(savedCart);
-        console.log('Cart: Found cart data in localStorage:', localStorageCart);
-      }
-    } catch (e) {
-      console.error('Error reading localStorage cart:', e);
-    }
-    
-    // First, initialize with any initial cart items passed from parent
-    if (initialCartItems && initialCartItems.length > 0) {
-      console.log('Cart: Using initialCartItems:', initialCartItems);
-      
-      // Debug check for proper structure
-      let validItems = [];
-      
-      initialCartItems.forEach((item, index) => {
-        const isValid = item && item.product && item.product._id && item.quantity;
-        console.log(`Cart: Item ${index} structure:`, {
-          hasProduct: !!item.product,
-          productId: item.product?._id,
-          productName: item.product?.name,
-          quantity: item.quantity,
-          isValid
-        });
-        
-        if (isValid) {
-          validItems.push(item);
-        }
-      });
-      
-      if (validItems.length > 0) {
-        setCart({ items: validItems });
-        
-        // Initialize quantities state with current item quantities
-        const initialQuantities = {};
-        validItems.forEach(item => {
-          initialQuantities[item.product._id] = item.quantity;
-        });
-        setQuantities(initialQuantities);
-        setIsLoading(false);
-        
-        // Save to localStorage as backup
-        localStorage.setItem('shopSmartCart', JSON.stringify({ items: validItems }));
-        return;
-      } else if (localStorageCart && localStorageCart.items && localStorageCart.items.length > 0) {
-        // Use localStorage backup if API items are invalid
-        setCart(localStorageCart);
-        
-        // Initialize quantities state with localStorage quantities
-        const localQuantities = {};
-        localStorageCart.items.forEach(item => {
-          if (item.product && item.product._id) {
-            localQuantities[item.product._id] = item.quantity;
-          }
-        });
-        setQuantities(localQuantities);
-        setIsLoading(false);
-        return;
-      }
-    } else if (localStorageCart && localStorageCart.items && localStorageCart.items.length > 0) {
-      // No initialCartItems but we have localStorage data
-      console.log('Cart: Using localStorage cart data');
-      setCart(localStorageCart);
-      
-      // Initialize quantities state with localStorage quantities
-      const localQuantities = {};
-      localStorageCart.items.forEach(item => {
-        if (item.product && item.product._id) {
-          localQuantities[item.product._id] = item.quantity;
-        }
-      });
-      setQuantities(localQuantities);
-      setIsLoading(false);
-      return;
-    } else {
-      console.log('Cart: No initialCartItems provided, will fetch from API');
-    }
-    
-    // If no initial items, fetch from the backend
-    const fetchCart = async () => {
-      setIsLoading(true);
-      try {
-        console.log('Fetching cart data from API...');
-        const response = await apiClient.get('/cart');
-        
-        // Check if response has expected data structure
-        if (response.data) {
-          console.log('Cart data received:', response.data);
-          setCart(response.data || { items: [] });
-          
-          // Initialize quantities state with current item quantities
-          const initialQuantities = {};
-          if (response.data.items && Array.isArray(response.data.items)) {
-            response.data.items.forEach(item => {
-              if (item.product && item.product._id) {
-                initialQuantities[item.product._id] = item.quantity;
-              }
-            });
-          }
-          setQuantities(initialQuantities);
-          setError(null);
-        } else {
-          setCart({ items: [] });
-          setQuantities({});
-          setError(null);
-        }
-      } catch (err) {
-        console.error('Error fetching cart:', err);
-        // Check if it's a connection error
-        if (err.code === 'ECONNREFUSED' || !err.response) {
-          setError('Cannot connect to server. Please check if the backend is running.');
-        } else if (err.response && err.response.status === 401) {
-          setError('Authentication failed. Please log in again.');
-        } else {
-          setError('Failed to load cart. Please try again later.');
-        }
-      } finally {
-        setIsLoading(false);
-      }
-    };
+    refreshCart();
+  }, []);
 
-    if (token) {
-      fetchCart();
-    } else {
-      setIsLoading(false);
-    }
-  }, [token, initialCartItems]);
-
-  const removeFromCart = async (productId) => {
-    try {
-      // No need to pass userId, will be extracted from token
-      await apiClient.post('/cart/remove', { productId });
-      
-      // Update local cart state
-      setCart(prev => ({ 
-        ...prev, 
-        items: prev.items.filter(item => item.product._id !== productId) 
-      }));
-      
-      // Update parent component's cart state (for header cart count)
-      if (onRemoveItem) {
-        onRemoveItem(productId);
-      }
-    } catch (err) {
-      setError('Failed to remove item. Please try again.');
-      console.error('Error removing item from cart:', err);
-    }
-  };
-
-  const updateQuantity = async (productId, newQuantity) => {
-    if (newQuantity < 1) return;
-    
-    try {
-      // No need to pass userId, will be extracted from token
-      await apiClient.post('/cart/update', { productId, quantity: newQuantity });
-      
-      // Update local state
-      setQuantities(prev => ({
-        ...prev,
-        [productId]: newQuantity
-      }));
-      
-      setCart(prev => ({
-        ...prev,
-        items: prev.items.map(item => 
-          item.product._id === productId 
-            ? { ...item, quantity: newQuantity } 
-            : item
-        )
-      }));
-      
-      // Update parent component's cart state (for header cart count)
-      if (onUpdateQuantity) {
-        onUpdateQuantity(productId, newQuantity);
-      }
-    } catch (err) {
-      setError('Failed to update quantity. Please try again.');
-      console.error('Error updating quantity:', err);
-    }
-  };
-
+  // Render loading state
   if (isLoading) {
     return (
       <div className="cart-page">
@@ -217,35 +29,26 @@ export default function Cart({ token, onRemoveItem, onUpdateQuantity, initialCar
     );
   }
 
+  // Render error state
   if (error) {
     return (
       <div className="cart-page">
         <h2>Your Cart</h2>
-        <div className="cart-error">{error}</div>
+        <div className="cart-error">
+          {error}
+          <button 
+            onClick={refreshCart} 
+            className="retry-button"
+          >
+            Retry
+          </button>
+        </div>
       </div>
     );
   }
-
-  // Additional useEffect for updating navbar cart counter
-  useEffect(() => {
-    // Get the cart element in the navbar
-    const cartCounter = document.querySelector('.navbar a[href="/cart"]');
-    if (cartCounter && cart?.items) {
-      cartCounter.textContent = `Cart (${cart.items.length || 0})`;
-    }
-  }, [cart?.items]);
   
-  // Debug cart state before rendering
-  console.log('Cart: Current cart state:', {
-    cartExists: !!cart,
-    itemsExist: !!cart?.items,
-    itemsLength: cart?.items?.length || 0,
-    isEmpty: !cart?.items || cart.items.length === 0,
-    itemsData: cart?.items
-  });
-  
-  if (!cart?.items || cart.items.length === 0) {
-    console.log('Cart: Rendering empty cart view');
+  // Render empty cart state
+  if (!cart || cart.length === 0) {
     return (
       <div className="cart-page">
         <h2>Your Cart</h2>
@@ -262,13 +65,14 @@ export default function Cart({ token, onRemoveItem, onUpdateQuantity, initialCar
     );
   }
 
-  console.log('Cart: Rendering non-empty cart view with items:', cart?.items);
+  // Calculate shipping and total
+  const shipping = 5.99;
+  const orderTotal = totalPrice + shipping;
   
+  // Render cart with items
   return (
     <div className="cart-page">
       <h2>Your Cart</h2>
-      
-      {error && <div className="cart-error">{error}</div>}
       
       <div className="cart-container">
         <div className="cart-items">
@@ -280,9 +84,7 @@ export default function Cart({ token, onRemoveItem, onUpdateQuantity, initialCar
             <div className="cart-header-actions"></div>
           </div>
           
-          {cart?.items?.filter(item => item && item.product && item.product._id).map((item, index) => {
-            console.log(`Cart: Rendering item ${index}:`, item);
-            return (
+          {cart.map(item => (
             <div key={item.product._id} className="cart-item">
               <div className="cart-item-product">
                 <div className="cart-item-image">
@@ -299,22 +101,24 @@ export default function Cart({ token, onRemoveItem, onUpdateQuantity, initialCar
               <div className="cart-item-quantity">
                 <button 
                   className="quantity-btn quantity-decrease"
-                  onClick={() => updateQuantity(item.product._id, quantities[item.product._id] - 1)}
-                  disabled={quantities[item.product._id] <= 1}
+                  onClick={() => updateQuantity(item.product._id, item.quantity - 1)}
+                  disabled={item.quantity <= 1}
+                  aria-label="Decrease quantity"
                 >
                   -
                 </button>
-                <span className="quantity-value">{quantities[item.product._id]}</span>
+                <span className="quantity-value">{item.quantity}</span>
                 <button 
                   className="quantity-btn quantity-increase"
-                  onClick={() => updateQuantity(item.product._id, quantities[item.product._id] + 1)}
+                  onClick={() => updateQuantity(item.product._id, item.quantity + 1)}
+                  aria-label="Increase quantity"
                 >
                   +
                 </button>
               </div>
               
               <div className="cart-item-total">
-                ${(item.product.price * quantities[item.product._id]).toFixed(2)}
+                ${(item.product.price * item.quantity).toFixed(2)}
               </div>
               
               <div className="cart-item-actions">
@@ -330,8 +134,7 @@ export default function Cart({ token, onRemoveItem, onUpdateQuantity, initialCar
                 </button>
               </div>
             </div>
-          );
-          })}
+          ))}
         </div>
         
         <div className="cart-summary">
@@ -339,17 +142,17 @@ export default function Cart({ token, onRemoveItem, onUpdateQuantity, initialCar
           
           <div className="cart-summary-row">
             <span>Subtotal</span>
-            <span>${totalPrice ? totalPrice.toFixed(2) : '0.00'}</span>
+            <span>${totalPrice.toFixed(2)}</span>
           </div>
           
           <div className="cart-summary-row">
             <span>Shipping</span>
-            <span>$5.99</span>
+            <span>${shipping.toFixed(2)}</span>
           </div>
           
           <div className="cart-summary-row cart-summary-total">
             <span>Total</span>
-            <span>${totalPrice ? (totalPrice + 5.99).toFixed(2) : '5.99'}</span>
+            <span>${orderTotal.toFixed(2)}</span>
           </div>
           
           <button className="checkout-btn">Proceed to Checkout</button>

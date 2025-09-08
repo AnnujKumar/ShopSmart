@@ -135,4 +135,54 @@ async function updateQuantity(req, res, next) {
   }
 }
 
-module.exports = { addToCart, getCart, removeFromCart, updateQuantity }
+async function updateCart(req, res, next) {
+  try {
+    const { items } = req.body
+    const userId = req.user._id // Get userId from authenticated user
+    
+    // Input validation
+    if (!items || !Array.isArray(items)) {
+      return res.status(400).json({ error: 'Items array is required' });
+    }
+    
+    // Validate each item in the array
+    for (const item of items) {
+      if (!item.product || !item.quantity || item.quantity < 1) {
+        return res.status(400).json({ 
+          error: 'Each item must have a product ID and a quantity of at least 1',
+          invalidItem: item
+        });
+      }
+      
+      // Check if productId is a valid ObjectId format
+      if (!mongoose.Types.ObjectId.isValid(item.product)) {
+        return res.status(400).json({ 
+          error: 'Invalid product ID format',
+          invalidId: item.product
+        });
+      }
+    }
+    
+    // Find or create cart
+    let cart = await Cart.findOne({ user: userId })
+    if (!cart) {
+      cart = new Cart({ user: userId, items: [] })
+    }
+    
+    // Replace cart items with new items
+    cart.items = items.map(item => ({
+      product: item.product,
+      quantity: item.quantity
+    }));
+    
+    await cart.save()
+    
+    // Populate product details before returning
+    const populatedCart = await Cart.findById(cart._id).populate('items.product');
+    res.json(populatedCart)
+  } catch (err) {
+    next(err)
+  }
+}
+
+module.exports = { addToCart, getCart, removeFromCart, updateQuantity, updateCart }

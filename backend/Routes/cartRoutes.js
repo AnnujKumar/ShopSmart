@@ -10,5 +10,6 @@ router.post('/add', cartController.addToCart)
 router.get('/', cartController.getCart)
 router.post('/remove', cartController.removeFromCart)
 router.post('/update', cartController.updateQuantity)
+router.put('/', cartController.updateCart) // New route for updating entire cart
 
 module.exports = router

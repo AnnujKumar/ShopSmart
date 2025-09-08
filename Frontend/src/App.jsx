@@ -12,6 +12,7 @@ import apiClient from './api/axios.js'
 import './App.css'
 import './components/UserDropdown.css'
 import './components/AuthStyles.css'
+import { CartProvider } from './context/CartContext'
 
 export default function App() {
   const [token, setToken] = useState(localStorage.getItem('token') || '')
@@ -176,6 +177,7 @@ export default function App() {
   
   return (
     <Router>
+      <CartProvider>
       <Routes>
         {/* Auth routes without header/footer */}
         <Route path="/signup" element={
@@ -290,6 +292,7 @@ export default function App() {
         
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
+      </CartProvider>
     </Router>
   )
 }
