@@ -268,7 +268,8 @@ export default function Cart({ token, onRemoveItem, onUpdateQuantity, initialCar
                 </button>
               </div>
             </div>
-          ))}
+          );
+          })}
         </div>
         
         <div className="cart-summary">
