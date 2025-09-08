@@ -2,7 +2,9 @@ import axios from 'axios';
 
 // Create a custom axios instance with default configuration
 const apiClient = axios.create({
-  baseURL: 'http://localhost:5000/api',
+  baseURL: process.env.NODE_ENV === 'production' 
+    ? 'https://shop-smart-backend.vercel.app/api' // Replace with your actual backend URL
+    : 'http://localhost:5000/api',
   withCredentials: true,
   headers: {
     'Content-Type': 'application/json'

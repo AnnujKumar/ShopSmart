@@ -1,6 +1,7 @@
 
 const express = require('express')
 const cors = require('cors')
+require('dotenv').config()
 const app = express()
 const userRoutes = require('./Routes/userRoutes')
 const productRoutes = require('./Routes/productRoutes')
@@ -12,7 +13,7 @@ process.env.JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret_should_be_lo
 
 // Enable CORS for all routes
 app.use(cors({
-  origin: ['http://localhost:5173', 'http://localhost:3000'],
+  origin: ['http://localhost:5173', 'http://localhost:3000', 'https://shop-smart-u643-o9ha5l5dm-annuj-kumars-projects.vercel.app', 'https://shop-smart-git-master-annuj-kumars-projects.vercel.app', 'https://shop-smart.vercel.app'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']

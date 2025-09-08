@@ -1,6 +1,8 @@
 
 const mongoose = require('mongoose')
-const uri = 'mongodb://localhost:27017/ecommerce'
+require('dotenv').config()
+
+const uri = process.env.MONGODB_URI || 'mongodb://localhost:27017/ecommerce'
 
 // Connect to MongoDB with improved error handling
 mongoose.connect(uri, { 
