@@ -1,8 +1,18 @@
 import axios from 'axios';
 
+// Log the API URL for debugging
+console.log('API URL from env:', import.meta.env.VITE_API_URL);
+
+// Fix for Vercel deployment - if the URL contains 'vercel.com/' incorrectly, replace it
+let apiUrl = import.meta.env.VITE_API_URL;
+if (apiUrl && apiUrl.includes('vercel.com/')) {
+  // Replace incorrect Vercel dashboard URL with
+  console.log('Corrected API URL:', apiUrl);
+}
+
 // Create a custom axios instance with default configuration
 const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_API_URL,
+  baseURL: apiUrl,
   withCredentials: true,
   headers: {
     'Content-Type': 'application/json'
