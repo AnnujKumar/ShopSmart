@@ -4,9 +4,16 @@ const port = process.env.PORT || 5000
 // Connect to the database first
 require('./database');
 
-const server = app.listen(port, () => {
-    console.log(`Server running on port ${port}`)
-})
+// Check if we're in a Vercel serverless environment
+if (process.env.VERCEL) {
+    // For serverless, export the app directly
+    module.exports = app;
+} else {
+    // For traditional hosting, listen on port
+    const server = app.listen(port, () => {
+        console.log(`Server running on port ${port}`)
+    })
+}
 
 // Handle server errors
 server.on('error', (error) => {

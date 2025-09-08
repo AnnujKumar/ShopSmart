@@ -29,6 +29,11 @@ app.use((req, res, next) => {
 });
 
 app.use(express.json())
+// Add a simple health check route
+app.get('/api/health', (req, res) => {
+  res.status(200).json({ status: 'ok', message: 'API is running!' });
+});
+
 app.use('/api/users', userRoutes)
 app.use('/api/products', productRoutes)
 app.use('/api/cart', cartRoutes)
