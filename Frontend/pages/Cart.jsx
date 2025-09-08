@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { useCart } from 'D://Web Development//ECommerce//Frontend//src//context//CartContext.jsx';
+import { useCart } from '../src/context/CartContext';
 import { useEffect } from 'react';
 
 export default function Cart() {
