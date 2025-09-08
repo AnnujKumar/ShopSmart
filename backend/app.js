@@ -23,11 +23,12 @@ const errorHandler = require('./middleware/errorHandler')
 // Set up environment variables for JWT
 process.env.JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret_should_be_long_and_secure_in_production';
 
-// Enable CORS for all routes - allow any origin
+// Enable CORS for all routes - allow specific origins
 app.use(cors({
-  origin: '*', // Allow all origins
+  origin: ['http://localhost:5173', 'https://shop-smart-12g9.vercel.app'],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true // Allow credentials
 }))
 
 // Request logging middleware
